@@ -111,7 +111,7 @@ const ProgressBar = ({ progress, isDarkMode }) => {
   );
 };
 
-const WaterGlass = ({ amount, onAdd, isDarkMode }) => {
+const WaterGlass = ({ amount, onAdd, onSubtract, isDarkMode }) => {
   const fillPercentage = Math.min((amount / WATER_GOAL) * 100, 100);
   return (
     <div className={`flex flex-col items-center p-4 sm:p-6 rounded-2xl sm:rounded-3xl border-2 mb-6 sm:mb-8 overflow-hidden relative transition-colors duration-300 ${
@@ -128,6 +128,19 @@ const WaterGlass = ({ amount, onAdd, isDarkMode }) => {
             className="absolute top-0 left-0 w-[120%] h-4 bg-sky-300 opacity-50 -translate-y-2" />
         </motion.div>
         <div className={`absolute inset-0 flex items-center justify-center font-black text-xl sm:text-2xl select-none ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>+8oz</div>
+      </div>
+      {/* +/- buttons */}
+      <div className="flex gap-3 mt-4 w-full">
+        <motion.button whileTap={{ scale: 0.93 }} onClick={onSubtract} disabled={amount <= 0}
+          className={`flex-1 py-2.5 rounded-xl font-black text-base border-2 transition-colors cursor-pointer disabled:opacity-40 ${
+            isDarkMode ? 'bg-slate-700 border-slate-600 text-slate-200 shadow-[0_3px_0_0_#0f172a]' : 'bg-slate-100 border-slate-200 text-slate-600 shadow-[0_3px_0_0_#e2e8f0]'}`}>
+          −8oz
+        </motion.button>
+        <motion.button whileTap={{ scale: 0.93 }} onClick={onAdd} disabled={amount >= WATER_GOAL}
+          className={`flex-1 py-2.5 rounded-xl font-black text-base border-2 transition-colors cursor-pointer disabled:opacity-40 ${
+            isDarkMode ? 'bg-sky-900/60 border-sky-700 text-sky-300 shadow-[0_3px_0_0_#0c4a6e]' : 'bg-sky-50 border-sky-200 text-sky-600 shadow-[0_3px_0_0_#bae6fd]'}`}>
+          +8oz
+        </motion.button>
       </div>
     </div>
   );
@@ -486,6 +499,7 @@ export default function RoutineTracker({ session }) {
   const [monthlyContacts, setMonthlyContacts] = useState([]);
   const [showContacts, setShowContacts] = useState(false);
   const [liveRoutines, setLiveRoutines] = useState([]);
+  const [hydrationRoutineId, setHydrationRoutineId] = useState(null);
   const [todayLogs, setTodayLogs] = useState({}); // { routine_id: logRow }
   const [activeView, setActiveView] = useState('tracker'); // 'tracker' | 'progress'
   const [isMigrating, setIsMigrating] = useState(false);
@@ -558,6 +572,23 @@ export default function RoutineTracker({ session }) {
     return rows;
   };
 
+  // Finds or creates the "Hydration" entry in daily_routines. Returns its id.
+  const ensureHydrationRoutine = async (routines) => {
+    const existing = routines.find(r => r.task_name === 'Hydration');
+    if (existing) return existing.id;
+    const { data, error } = await supabase
+      .from('daily_routines')
+      .insert({ user_id: session.user.id, task_name: 'Hydration' })
+      .select()
+      .single();
+    if (error) {
+      console.error('[Water] Error creating Hydration routine entry:', error);
+      return null;
+    }
+    setLiveRoutines(prev => [...prev, data]);
+    return data.id;
+  };
+
   const seedDailyRoutines = async () => {
     setIsMigrating(true);
     console.log('[RoutineTracker] Seeding daily_routines…');
@@ -581,8 +612,11 @@ export default function RoutineTracker({ session }) {
       return;
     }
     console.log('[RoutineTracker] Seeded', data?.length, 'routines.');
-    setLiveRoutines(data ?? []);
-    await fetchTodayLogs(data ?? []);
+    const seeded = data ?? [];
+    setLiveRoutines(seeded);
+    const hId = await ensureHydrationRoutine(seeded);
+    setHydrationRoutineId(hId);
+    await fetchTodayLogs(seeded, hId);
     setIsMigrating(false);
   };
 
@@ -599,7 +633,9 @@ export default function RoutineTracker({ session }) {
     console.log('[RoutineTracker] daily_routines returned', data?.length ?? 0, 'rows.');
     if (data && data.length > 0) {
       setLiveRoutines(data);
-      await fetchTodayLogs(data);
+      const hId = await ensureHydrationRoutine(data);
+      setHydrationRoutineId(hId);
+      await fetchTodayLogs(data, hId);
     } else {
       // Table is empty for this user — auto-seed from RAW_DATA
       console.log('[RoutineTracker] No routines found — auto-seeding from RAW_DATA…');
@@ -607,7 +643,7 @@ export default function RoutineTracker({ session }) {
     }
   };
 
-  const fetchTodayLogs = async (routines = liveRoutines) => {
+  const fetchTodayLogs = async (routines = liveRoutines, hydrationId = hydrationRoutineId) => {
     const todayStr = getTodayStr();
     console.log('[RoutineTracker] Fetching logs for date:', todayStr);
     const { data: logs, error } = await supabase
@@ -625,11 +661,36 @@ export default function RoutineTracker({ session }) {
       const logsMap = {};
       logs.forEach(log => { logsMap[log.routine_id] = log; });
       setTodayLogs(logsMap);
-      // Derive completed task names from logs
+      // Derive completed task names from logs (exclude the Hydration routine — it's a counter, not a checkbox)
       const completedNames = routines
-        .filter(r => logsMap[r.id])
+        .filter(r => logsMap[r.id] && r.id !== hydrationId)
         .map(r => r.task_name);
       setCompleted(completedNames);
+      // Restore water counter from count_value
+      if (hydrationId && logsMap[hydrationId]?.count_value != null) {
+        console.log('[Water] Restoring water count from DB:', logsMap[hydrationId].count_value);
+        setWater(logsMap[hydrationId].count_value);
+      }
+    }
+  };
+
+  // Upserts today's water count into routine_logs using count_value
+  const upsertWaterLog = async (newAmount) => {
+    if (!hydrationRoutineId) {
+      console.warn('[Water] hydrationRoutineId not set — cannot persist water log.');
+      return;
+    }
+    const todayStr = getTodayStr();
+    const { error } = await supabase
+      .from('routine_logs')
+      .upsert(
+        { user_id: session.user.id, routine_id: hydrationRoutineId, completed_date: todayStr, count_value: newAmount },
+        { onConflict: 'user_id,routine_id,completed_date' }
+      );
+    if (error) {
+      console.error('[Water] Error upserting water log:', error);
+    } else {
+      console.log('[Water] Water log upserted — count_value:', newAmount, 'date:', todayStr);
     }
   };
 
@@ -846,7 +907,22 @@ export default function RoutineTracker({ session }) {
     });
   }, [completed, todayData, sectionsCompleted]);
 
-  const addWater = () => { if (water < WATER_GOAL) { setWater(prev => Math.min(prev + WATER_INCREMENT, WATER_GOAL)); if (water + WATER_INCREMENT === WATER_GOAL) confetti({ particleCount: 150, velocity: 30, colors: ['#3ABEF9'] }); } };
+  const addWater = () => {
+    if (water < WATER_GOAL) {
+      const newAmount = Math.min(water + WATER_INCREMENT, WATER_GOAL);
+      setWater(newAmount);
+      upsertWaterLog(newAmount);
+      if (newAmount === WATER_GOAL) confetti({ particleCount: 150, velocity: 30, colors: ['#3ABEF9'] });
+    }
+  };
+
+  const subtractWater = () => {
+    if (water > 0) {
+      const newAmount = Math.max(water - WATER_INCREMENT, 0);
+      setWater(newAmount);
+      upsertWaterLog(newAmount);
+    }
+  };
 
   const bgGradient = isDarkMode ? 'linear-gradient(to bottom right, #0f172a, #1e1b4b, #0f172a)' : 'linear-gradient(to bottom right, #e0f2fe, #eef2ff, #fff7ed)';
   const dotColor = isDarkMode ? '%23334155' : '%23e8e4dd';
@@ -947,7 +1023,7 @@ export default function RoutineTracker({ session }) {
         {activeView === 'tracker' ? (
           <>
             <DaySelector selectedDay={day} realToday={realToday} onSelect={handleDayChange} isDarkMode={isDarkMode} />
-            <WaterGlass amount={water} onAdd={addWater} isDarkMode={isDarkMode} />
+            <WaterGlass amount={water} onAdd={addWater} onSubtract={subtractWater} isDarkMode={isDarkMode} />
 
             {todayData.Morning && (
               <RoutineGroup title="Morning" icon={Sun} color="bg-orange-400" tasks={todayData.Morning} completedTasks={completed}
