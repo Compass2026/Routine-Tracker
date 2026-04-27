@@ -352,9 +352,7 @@ const MonthlyComms = ({ contacts, onToggleContact, isDarkMode }) => {
   };
 
   return (
-    <div className={`rounded-3xl border-2 p-6 mb-10 transition-colors duration-300 ${
-      isDarkMode ? 'bg-slate-800/60 border-slate-700 shadow-[0_8px_0_0_#0f172a]' : 'bg-white/80 border-slate-100 shadow-[0_8px_0_0_#e2e8f0]'
-    }`}>
+    <>
       {/* Header */}
       <div className="flex items-center gap-3 mb-5">
         <div className="p-2.5 rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white shadow-lg">
@@ -401,9 +399,33 @@ const MonthlyComms = ({ contacts, onToggleContact, isDarkMode }) => {
       {friendContacts.length > 0 && (
         <CategoryGroup title="Friends" icon={Users} iconBg="bg-blue-500" contacts={friendContacts} />
       )}
-    </div>
+    </>
   );
 };
+
+// --- COMMUNICATION TRACKER MODAL ---
+const CommunicationTrackerModal = ({ isOpen, onClose, contacts, onToggleContact, isDarkMode }) => (
+  <AnimatePresence>{isOpen && (<>
+    <motion.div key="comms-backdrop" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}
+      onClick={onClose} className="fixed inset-0 z-50" style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)', backdropFilter: 'blur(4px)' }} />
+    <motion.div key="comms-modal" initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+      transition={{ type: 'spring', damping: 28, stiffness: 300 }} className="fixed bottom-0 left-0 right-0 z-50 flex justify-center">
+      <div className={`w-full max-w-lg rounded-t-3xl p-6 pb-10 border-t-2 ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}
+        style={{ boxShadow: '0 -8px 40px rgba(0,0,0,0.25)', maxHeight: '85vh', overflowY: 'auto' }}>
+        <div className="flex justify-end mb-2">
+          <motion.button whileTap={{ scale: 0.85 }} onClick={onClose}
+            className={`p-2 rounded-xl transition-colors ${isDarkMode ? 'text-slate-500 hover:bg-slate-800' : 'text-slate-400 hover:bg-slate-100'}`}><X size={24} /></motion.button>
+        </div>
+
+        <MonthlyComms contacts={contacts} onToggleContact={onToggleContact} isDarkMode={isDarkMode} />
+
+        <motion.button whileTap={{ scale: 0.97 }} whileHover={{ scale: 1.01 }} onClick={onClose}
+          className="w-full py-5 rounded-2xl font-black text-xl text-white cursor-pointer border-2 border-transparent transition-colors mt-2"
+          style={{ background: 'linear-gradient(135deg, #8b5cf6, #d946ef)', boxShadow: '0 6px 0 0 #6d28d9' }}>✕ Close Tracker</motion.button>
+      </div>
+    </motion.div>
+  </>)}</AnimatePresence>
+);
 
 const getWeatherIcon = (code) => {
   if (code === 0 || code === 1) return { Icon: Sun, color: 'text-amber-400', label: 'Clear' };
@@ -461,6 +483,7 @@ export default function RoutineTracker({ session }) {
   const [isBirthdayModalOpen, setIsBirthdayModalOpen] = useState(false);
   const [liveBirthdays, setLiveBirthdays] = useState([]);
   const [monthlyContacts, setMonthlyContacts] = useState([]);
+  const [showContacts, setShowContacts] = useState(false);
 
 
   const [streak, setStreak] = useState(() => { try { const s = localStorage.getItem('routine-streak'); return s ? Number(s) : 0; } catch { return 0; } });
@@ -669,10 +692,27 @@ export default function RoutineTracker({ session }) {
             onToggle={handleToggle} isDarkMode={isDarkMode} />
         )}
 
-        {/* Monthly Comms Section */}
-        {monthlyContacts.length > 0 && (
-          <MonthlyComms contacts={monthlyContacts} onToggleContact={handleToggleContact} isDarkMode={isDarkMode} />
-        )}
+        {/* Communication Tracker + Birthday List trigger buttons */}
+        <div className="flex gap-3 mb-10">
+          <motion.button id="birthday-list-btn" whileTap={{ scale: 0.95 }} whileHover={{ scale: 1.03 }}
+            onClick={() => setIsBirthdayModalOpen(true)}
+            className={`flex-1 flex items-center justify-center gap-2 py-5 rounded-2xl font-black text-lg cursor-pointer border-2 transition-colors duration-300 ${
+              isDarkMode
+                ? 'bg-pink-950/50 border-pink-800 text-pink-300 shadow-[0_6px_0_0_#831843]'
+                : 'bg-gradient-to-br from-pink-50 to-fuchsia-50 border-pink-200 text-pink-600 shadow-[0_6px_0_0_#fbcfe8]'
+            }`}>
+            🎂 Birthdays
+          </motion.button>
+          <motion.button id="comms-tracker-btn" whileTap={{ scale: 0.95 }} whileHover={{ scale: 1.03 }}
+            onClick={() => setShowContacts(true)}
+            className={`flex-1 flex items-center justify-center gap-2 py-5 rounded-2xl font-black text-lg cursor-pointer border-2 transition-colors duration-300 ${
+              isDarkMode
+                ? 'bg-violet-950/50 border-violet-800 text-violet-300 shadow-[0_6px_0_0_#4c1d95]'
+                : 'bg-gradient-to-br from-violet-50 to-fuchsia-50 border-violet-200 text-violet-600 shadow-[0_6px_0_0_#ddd6fe]'
+            }`}>
+            📞 Comms Tracker
+          </motion.button>
+        </div>
 
 
         <div className="h-10" />
@@ -692,6 +732,8 @@ export default function RoutineTracker({ session }) {
       <BibleReadingModal isOpen={isBibleModalOpen} onClose={() => setIsBibleModalOpen(false)} onMarkRead={handleBibleMarkRead} isDarkMode={isDarkMode} />
       <BirthdayModal isOpen={isBirthdayModalOpen} onClose={() => setIsBirthdayModalOpen(false)} onReviewComplete={handleBirthdayReviewComplete}
         isDarkMode={isDarkMode} todayBirthdays={todayBirthdays} upcomingBirthdays={upcomingBirthdays} />
+      <CommunicationTrackerModal isOpen={showContacts} onClose={() => setShowContacts(false)}
+        contacts={monthlyContacts} onToggleContact={handleToggleContact} isDarkMode={isDarkMode} />
     </div>
   );
 }
