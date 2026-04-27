@@ -816,15 +816,21 @@ export default function RoutineTracker({ session }) {
     }
   };
 
-  const handleBibleMarkRead = () => {
+  const handleBibleMarkRead = async () => {
     setIsBibleModalOpen(false);
-    setCompleted(prev => prev.includes('Bible Reading') ? prev : [...prev, 'Bible Reading']);
+    // Use the canonical toggle so it writes to routine_logs (persists across refreshes)
+    if (!completed.includes('Bible Reading')) {
+      await handleToggle('Bible Reading');
+    }
     confetti({ particleCount: 100, spread: 60, origin: { y: 0.7 }, colors: ['#3b82f6', '#60a5fa', '#fbbf24', '#f59e0b', '#1d4ed8', '#eab308'] });
   };
 
-  const handleBirthdayReviewComplete = () => {
+  const handleBirthdayReviewComplete = async () => {
     setIsBirthdayModalOpen(false);
-    setCompleted(prev => prev.includes('Birthday List') ? prev : [...prev, 'Birthday List']);
+    // Use the canonical toggle so it writes to routine_logs (persists across refreshes)
+    if (!completed.includes('Birthday List')) {
+      await handleToggle('Birthday List');
+    }
     confetti({ particleCount: 100, spread: 60, origin: { y: 0.7 }, colors: ['#ec4899', '#d946ef', '#a855f7', '#fbbf24', '#f59e0b', '#f472b6'] });
   };
 
