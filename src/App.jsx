@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
 import Auth from './Auth';
 import RoutineTracker from './RoutineTracker';
+import InstallPrompt from './InstallPrompt';
 
 export default function App() {
   const [session, setSession] = useState(null);
@@ -33,5 +34,10 @@ export default function App() {
     );
   }
 
-  return session ? <RoutineTracker session={session} /> : <Auth />;
+  return (
+    <>
+      {session ? <RoutineTracker session={session} /> : <Auth />}
+      <InstallPrompt />
+    </>
+  );
 }
