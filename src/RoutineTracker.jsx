@@ -2,10 +2,11 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { supabase } from './supabaseClient';
+import ProgressHistory from './ProgressHistory';
 import { 
   Check, Droplets, Sun, Briefcase, Moon, Calendar, ChevronRight,
   Trophy, Flame, BookOpen, Cake, X, Cloud, CloudRain, CloudSnow, CloudFog, LogOut,
-  MessageCircle, Users, Heart
+  MessageCircle, Users, Heart, BarChart3, ClipboardList
 } from 'lucide-react';
 
 const RAW_DATA = {
@@ -65,35 +66,35 @@ const todaysReadings = [
 
 const DarkModeToggle = ({ isDarkMode, onToggle }) => (
   <motion.button whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }} onClick={onToggle}
-    className="relative flex items-center justify-center w-14 h-14 rounded-2xl border-2 font-black text-lg cursor-pointer transition-colors duration-300"
+    className="relative flex items-center justify-center w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl border-2 font-black text-lg cursor-pointer transition-colors duration-300"
     style={{ backgroundColor: isDarkMode ? '#1e293b' : '#ffffff', borderColor: isDarkMode ? '#475569' : '#e2e8f0',
       boxShadow: isDarkMode ? '0 4px 0 0 #0f172a' : '0 4px 0 0 #f1f5f9', color: isDarkMode ? '#fbbf24' : '#f97316' }}
     aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}>
     <AnimatePresence mode="wait">
       {isDarkMode ? (
         <motion.div key="moon" initial={{ rotate: -90, opacity: 0, scale: 0.5 }} animate={{ rotate: 0, opacity: 1, scale: 1 }}
-          exit={{ rotate: 90, opacity: 0, scale: 0.5 }} transition={{ duration: 0.2 }}><Moon size={24} fill="currentColor" /></motion.div>
+          exit={{ rotate: 90, opacity: 0, scale: 0.5 }} transition={{ duration: 0.2 }}><Moon size={20} fill="currentColor" /></motion.div>
       ) : (
         <motion.div key="sun" initial={{ rotate: 90, opacity: 0, scale: 0.5 }} animate={{ rotate: 0, opacity: 1, scale: 1 }}
-          exit={{ rotate: -90, opacity: 0, scale: 0.5 }} transition={{ duration: 0.2 }}><Sun size={24} fill="currentColor" /></motion.div>
+          exit={{ rotate: -90, opacity: 0, scale: 0.5 }} transition={{ duration: 0.2 }}><Sun size={20} fill="currentColor" /></motion.div>
       )}
     </AnimatePresence>
   </motion.button>
 );
 
 const DaySelector = ({ selectedDay, realToday, onSelect, isDarkMode }) => (
-  <div className="flex gap-2 mb-8 px-1">
+  <div className="flex gap-1 sm:gap-2 mb-6 sm:mb-8 px-0 sm:px-1">
     {DAYS_ORDER.map((dayName, i) => {
       const isSelected = dayName === selectedDay;
       const isToday = dayName === realToday;
       return (
         <motion.button key={dayName} whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }} onClick={() => onSelect(dayName)}
-          className={`relative flex-1 py-3 rounded-2xl font-black text-sm transition-all duration-200 cursor-pointer border-2 ${
+          className={`relative flex-1 py-2 sm:py-3 rounded-xl sm:rounded-2xl font-black text-xs sm:text-sm transition-all duration-200 cursor-pointer border-2 ${
             isSelected ? 'bg-lime-500 text-white border-lime-500 shadow-[0_4px_0_0_#65a30d]'
               : isDarkMode ? 'bg-slate-800 text-slate-400 border-slate-700 shadow-[0_4px_0_0_#0f172a] hover:text-slate-200 hover:border-slate-600'
               : 'bg-white text-slate-400 border-slate-100 shadow-[0_4px_0_0_#f1f5f9] hover:text-slate-600 hover:border-slate-200'}`}>
           {DAY_LABELS[i]}
-          {isToday && (<span className={`absolute -top-1 -right-1 w-3 h-3 rounded-full ${isSelected ? 'bg-lime-400' : 'bg-red-500'}`}>
+          {isToday && (<span className={`absolute -top-1 -right-1 w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full ${isSelected ? 'bg-lime-400' : 'bg-red-500'}`}>
             <span className={`absolute inset-0 rounded-full animate-ping ${isSelected ? 'bg-lime-400' : 'bg-red-500'} opacity-75`} /></span>)}
         </motion.button>
       );
@@ -113,20 +114,20 @@ const ProgressBar = ({ progress, isDarkMode }) => {
 const WaterGlass = ({ amount, onAdd, isDarkMode }) => {
   const fillPercentage = Math.min((amount / WATER_GOAL) * 100, 100);
   return (
-    <div className={`flex flex-col items-center p-6 rounded-3xl border-2 mb-8 overflow-hidden relative transition-colors duration-300 ${
-      isDarkMode ? 'bg-slate-800 border-slate-700 shadow-[0_8px_0_0_#0f172a]' : 'bg-white border-slate-100 shadow-[0_8px_0_0_#e2e8f0]'}`}>
-      <div className="flex justify-between w-full items-center mb-4">
-        <div><h3 className={`text-xl font-black ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>Hydration</h3>
-          <p className={`font-bold ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>{amount}oz / {WATER_GOAL}oz</p></div>
-        <Droplets className="text-sky-400" size={32} />
+    <div className={`flex flex-col items-center p-4 sm:p-6 rounded-2xl sm:rounded-3xl border-2 mb-6 sm:mb-8 overflow-hidden relative transition-colors duration-300 ${
+      isDarkMode ? 'bg-slate-800 border-slate-700 shadow-[0_6px_0_0_#0f172a] sm:shadow-[0_8px_0_0_#0f172a]' : 'bg-white border-slate-100 shadow-[0_6px_0_0_#e2e8f0] sm:shadow-[0_8px_0_0_#e2e8f0]'}`}>
+      <div className="flex justify-between w-full items-center mb-3 sm:mb-4">
+        <div><h3 className={`text-lg sm:text-xl font-black ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>Hydration</h3>
+          <p className={`font-bold text-sm sm:text-base ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>{amount}oz / {WATER_GOAL}oz</p></div>
+        <Droplets className="text-sky-400" size={28} />
       </div>
-      <div onClick={onAdd} className={`relative w-32 h-44 border-4 rounded-b-2xl rounded-t-lg overflow-hidden cursor-pointer active:scale-95 transition-transform ${
+      <div onClick={onAdd} className={`relative w-24 h-32 sm:w-32 sm:h-44 border-4 rounded-b-2xl rounded-t-lg overflow-hidden cursor-pointer active:scale-95 transition-transform ${
         isDarkMode ? 'border-slate-600 bg-slate-700' : 'border-slate-200 bg-slate-50'}`}>
         <motion.div className="absolute bottom-0 w-full bg-sky-400" initial={{ height: 0 }} animate={{ height: `${fillPercentage}%` }} transition={{ type: 'spring', damping: 15 }}>
           <motion.div animate={{ x: [-5, 5, -5], transition: { repeat: Infinity, duration: 2, ease: "linear" } }}
             className="absolute top-0 left-0 w-[120%] h-4 bg-sky-300 opacity-50 -translate-y-2" />
         </motion.div>
-        <div className={`absolute inset-0 flex items-center justify-center font-black text-2xl select-none ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>+8oz</div>
+        <div className={`absolute inset-0 flex items-center justify-center font-black text-xl sm:text-2xl select-none ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>+8oz</div>
       </div>
     </div>
   );
@@ -134,26 +135,26 @@ const WaterGlass = ({ amount, onAdd, isDarkMode }) => {
 
 const TaskItem = ({ task, completed, onToggle, isDarkMode }) => (
   <motion.div whileTap={{ scale: 0.98 }} onClick={onToggle}
-    className={`flex items-center p-4 mb-3 rounded-2xl border-2 transition-all cursor-pointer ${
+    className={`flex items-center p-3 sm:p-4 mb-2 sm:mb-3 rounded-xl sm:rounded-2xl border-2 transition-all cursor-pointer ${
       completed ? isDarkMode ? 'bg-slate-900/50 border-transparent' : 'bg-slate-50 border-transparent'
         : isDarkMode ? 'bg-slate-800 border-slate-700 shadow-[0_4px_0_0_#0f172a]' : 'bg-white border-slate-100 shadow-[0_4px_0_0_#f1f5f9]'}`}>
-    <div className={`w-8 h-8 rounded-xl border-2 flex items-center justify-center transition-all ${
+    <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl border-2 flex items-center justify-center flex-shrink-0 transition-all ${
       completed ? 'bg-lime-500 border-lime-500' : isDarkMode ? 'border-slate-600 bg-slate-700' : 'border-slate-200 bg-white'}`}>
-      {completed && <Check size={20} className="text-white stroke-[4px]" />}
+      {completed && <Check size={18} className="text-white stroke-[4px]" />}
     </div>
-    <span className={`ml-4 font-bold text-lg transition-all ${completed ? 'text-slate-400 line-through' : isDarkMode ? 'text-slate-100' : 'text-slate-700'}`}>{task}</span>
+    <span className={`ml-3 sm:ml-4 font-bold text-base sm:text-lg transition-all ${completed ? 'text-slate-400 line-through' : isDarkMode ? 'text-slate-100' : 'text-slate-700'}`}>{task}</span>
   </motion.div>
 );
 
 const RoutineGroup = ({ title, tasks, completedTasks, onToggle, onBibleReading, onBirthdayList, icon: Icon, color, isDarkMode }) => {
   const allDone = tasks.every(t => completedTasks.includes(t));
   return (
-    <div className="mb-10">
-      <div className="flex items-center mb-4 px-2">
-        <div className={`p-2 rounded-xl ${color} text-white mr-3 shadow-lg`}><Icon size={24} /></div>
-        <h2 className={`text-2xl font-black tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>{title}</h2>
+    <div className="mb-8 sm:mb-10">
+      <div className="flex items-center mb-3 sm:mb-4 px-1 sm:px-2">
+        <div className={`p-1.5 sm:p-2 rounded-lg sm:rounded-xl ${color} text-white mr-2 sm:mr-3 shadow-lg`}><Icon size={20} /></div>
+        <h2 className={`text-xl sm:text-2xl font-black tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>{title}</h2>
       </div>
-      <div className="space-y-1">
+      <div className="space-y-0.5 sm:space-y-1">
         {tasks.map(task => (
           <TaskItem key={task} task={task} completed={completedTasks.includes(task)} isDarkMode={isDarkMode}
             onToggle={() => {
@@ -443,12 +444,12 @@ const getWeatherIcon = (code) => {
 const WeatherWidget = ({ weather, isDarkMode }) => {
   if (!weather) {
     return (
-      <div className={`p-3 rounded-2xl border-2 flex items-center gap-2 animate-pulse transition-colors duration-300 ${
+      <div className={`p-2 sm:p-3 rounded-xl sm:rounded-2xl border-2 flex items-center gap-1.5 sm:gap-2 animate-pulse transition-colors duration-300 ${
         isDarkMode ? 'bg-slate-800 border-slate-700 shadow-sm' : 'bg-white border-slate-100 shadow-sm'}`}>
-        <div className={`w-8 h-8 rounded-xl ${isDarkMode ? 'bg-slate-700' : 'bg-slate-100'}`} />
+        <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl ${isDarkMode ? 'bg-slate-700' : 'bg-slate-100'}`} />
         <div className="flex flex-col gap-1">
-          <div className={`w-12 h-4 rounded-md ${isDarkMode ? 'bg-slate-700' : 'bg-slate-100'}`} />
-          <div className={`w-16 h-3 rounded-md ${isDarkMode ? 'bg-slate-700' : 'bg-slate-100'}`} />
+          <div className={`w-10 sm:w-12 h-3 sm:h-4 rounded-md ${isDarkMode ? 'bg-slate-700' : 'bg-slate-100'}`} />
+          <div className={`w-14 sm:w-16 h-2.5 sm:h-3 rounded-md ${isDarkMode ? 'bg-slate-700' : 'bg-slate-100'}`} />
         </div>
       </div>
     );
@@ -456,13 +457,13 @@ const WeatherWidget = ({ weather, isDarkMode }) => {
   const { Icon, color, label } = getWeatherIcon(weather.code);
   return (
     <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: 'spring', damping: 15 }}
-      className={`p-3 rounded-2xl border-2 flex items-center gap-2 transition-colors duration-300 ${
+      className={`p-2 sm:p-3 rounded-xl sm:rounded-2xl border-2 flex items-center gap-1.5 sm:gap-2 transition-colors duration-300 ${
         isDarkMode ? 'bg-slate-800 border-slate-700 shadow-[0_4px_0_0_#0f172a]' : 'bg-white border-slate-100 shadow-[0_4px_0_0_#f1f5f9]'}`}>
-      <div className={`p-1.5 rounded-xl ${isDarkMode ? 'bg-slate-700' : 'bg-slate-50'} ${color}`}>
-        <Icon size={22} fill="currentColor" strokeWidth={1.5} /></div>
+      <div className={`p-1 sm:p-1.5 rounded-lg sm:rounded-xl ${isDarkMode ? 'bg-slate-700' : 'bg-slate-50'} ${color}`}>
+        <Icon size={18} fill="currentColor" strokeWidth={1.5} /></div>
       <div className="flex flex-col leading-tight">
-        <span className={`font-black text-lg ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>{Math.round(weather.temp)}°</span>
-        <span className={`text-[11px] font-bold uppercase tracking-wide ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>{label}</span>
+        <span className={`font-black text-base sm:text-lg ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>{Math.round(weather.temp)}°</span>
+        <span className={`text-[10px] sm:text-[11px] font-bold uppercase tracking-wide ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>{label}</span>
       </div>
     </motion.div>
   );
@@ -484,6 +485,9 @@ export default function RoutineTracker({ session }) {
   const [liveBirthdays, setLiveBirthdays] = useState([]);
   const [monthlyContacts, setMonthlyContacts] = useState([]);
   const [showContacts, setShowContacts] = useState(false);
+  const [liveRoutines, setLiveRoutines] = useState([]);
+  const [todayLogs, setTodayLogs] = useState({}); // { routine_id: logRow }
+  const [activeView, setActiveView] = useState('tracker'); // 'tracker' | 'progress'
 
 
   const [streak, setStreak] = useState(() => { try { const s = localStorage.getItem('routine-streak'); return s ? Number(s) : 0; } catch { return 0; } });
@@ -506,6 +510,9 @@ export default function RoutineTracker({ session }) {
   // Fetch monthly contacts from Supabase on mount
   useEffect(() => { fetchMonthlyContacts(); }, []);
 
+  // Fetch daily routines from Supabase on mount
+  useEffect(() => { fetchDailyRoutines(); }, []);
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
   };
@@ -522,6 +529,43 @@ export default function RoutineTracker({ session }) {
     if (error) { console.error('Error fetching monthly contacts:', error); return; }
     if (data) setMonthlyContacts(data);
   };
+
+  const getTodayStr = () => new Date().toISOString().split('T')[0];
+
+  const fetchDailyRoutines = async () => {
+    const { data, error } = await supabase
+      .from('daily_routines')
+      .select('*')
+      .eq('user_id', session.user.id);
+    if (error) { console.error('Error fetching daily routines:', error); return; }
+    if (data) {
+      setLiveRoutines(data);
+      // Now fetch today's logs to determine checked state
+      await fetchTodayLogs(data);
+    }
+  };
+
+  const fetchTodayLogs = async (routines = liveRoutines) => {
+    const todayStr = getTodayStr();
+    const { data: logs, error } = await supabase
+      .from('routine_logs')
+      .select('*')
+      .eq('user_id', session.user.id)
+      .eq('completed_date', todayStr);
+    if (error) { console.error('Error fetching routine logs:', error); return; }
+    if (logs) {
+      // Build a lookup: routine_id → log row
+      const logsMap = {};
+      logs.forEach(log => { logsMap[log.routine_id] = log; });
+      setTodayLogs(logsMap);
+      // Derive completed task names from logs
+      const completedNames = routines
+        .filter(r => logsMap[r.id])
+        .map(r => r.task_name);
+      setCompleted(completedNames);
+    }
+  };
+
 
   const handleToggleContact = async (contact) => {
     // Optimistic: update immediately, then persist to Supabase
@@ -549,7 +593,20 @@ export default function RoutineTracker({ session }) {
 
 
   const handleDayChange = (newDay) => {
-    if (newDay !== day) { setDay(newDay); setWater(0); setCompleted([]); setSectionsCompleted([]); }
+    if (newDay !== day) {
+      setDay(newDay);
+      setWater(0);
+      setSectionsCompleted([]);
+      // When switching to today, restore completed from logs; otherwise clear
+      if (newDay === realToday) {
+        const completedNames = liveRoutines
+          .filter(r => todayLogs[r.id])
+          .map(r => r.task_name);
+        setCompleted(completedNames);
+      } else {
+        setCompleted([]);
+      }
+    }
   };
 
   const todayData = RAW_DATA[day] || {};
@@ -603,7 +660,46 @@ export default function RoutineTracker({ session }) {
     confetti({ particleCount: 120, spread: 80, origin: { y: 0.5 }, colors: ['#f97316', '#ef4444', '#eab308', '#dc2626', '#f59e0b', '#fbbf24'] });
   }, [currentProgress]);
 
-  const handleToggle = (task) => { setCompleted(prev => prev.includes(task) ? prev.filter(t => t !== task) : [...prev, task]); };
+  const handleToggle = async (task) => {
+    const isCompleting = !completed.includes(task);
+    const routine = liveRoutines.find(r => r.task_name === task.trim());
+    if (!routine) return;
+
+    const todayStr = getTodayStr();
+
+    // Optimistic UI update
+    setCompleted(prev => isCompleting ? [...prev, task] : prev.filter(t => t !== task));
+
+    if (isCompleting) {
+      // INSERT a new log row
+      const newLog = { user_id: session.user.id, routine_id: routine.id, completed_date: todayStr };
+      setTodayLogs(prev => ({ ...prev, [routine.id]: newLog }));
+
+      const { data, error } = await supabase.from('routine_logs').insert(newLog).select().single();
+      if (error) {
+        console.error('Error inserting routine log:', error);
+        setCompleted(prev => prev.filter(t => t !== task));
+        setTodayLogs(prev => { const next = { ...prev }; delete next[routine.id]; return next; });
+      } else {
+        // Store the real row (with server-generated id) in our local cache
+        setTodayLogs(prev => ({ ...prev, [routine.id]: data }));
+      }
+    } else {
+      // DELETE the existing log row
+      const existingLog = todayLogs[routine.id];
+      setTodayLogs(prev => { const next = { ...prev }; delete next[routine.id]; return next; });
+
+      const { error } = await supabase.from('routine_logs').delete()
+        .eq('user_id', session.user.id)
+        .eq('routine_id', routine.id)
+        .eq('completed_date', todayStr);
+      if (error) {
+        console.error('Error deleting routine log:', error);
+        setCompleted(prev => [...prev, task]);
+        if (existingLog) setTodayLogs(prev => ({ ...prev, [routine.id]: existingLog }));
+      }
+    }
+  };
 
   const handleBibleMarkRead = () => {
     setIsBibleModalOpen(false);
@@ -640,79 +736,123 @@ export default function RoutineTracker({ session }) {
       <div className="absolute inset-0 pointer-events-none transition-opacity duration-500"
         style={{ opacity: dotOpacity, backgroundImage: `url("data:image/svg+xml,%3Csvg width='24' height='24' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='2' cy='2' r='1.5' fill='${dotColor}'/%3E%3C/svg%3E")`, backgroundRepeat: 'repeat' }} />
       <ProgressBar progress={currentProgress} isDarkMode={isDarkMode} />
-      <main className="relative max-w-md mx-auto px-4">
-        <header className="flex justify-between items-end mb-4 px-2">
-          <div>
-            <p className="text-orange-500 font-black uppercase tracking-widest text-sm">{day === realToday ? "Today's Routine" : `${day}'s Routine`}</p>
-            <h1 className={`text-4xl font-black ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{day}</h1>
-          </div>
-          <div className="flex items-center gap-2">
-            <WeatherWidget weather={weather} isDarkMode={isDarkMode} />
-            <div className={`p-3 rounded-2xl border-2 flex items-center transition-colors duration-300 ${
-              isDarkMode ? 'bg-slate-800 border-slate-700 shadow-[0_4px_0_0_#0f172a]' : 'bg-white border-slate-100 shadow-[0_4px_0_0_#f1f5f9]'}`}>
-              <Trophy className="text-yellow-400 mr-2" fill="currentColor" />
-              <span className={`font-black ${isDarkMode ? 'text-slate-100' : 'text-slate-700'}`}>{currentProgress}%</span>
+      <main className="relative max-w-md mx-auto px-3 sm:px-4 overflow-x-hidden">
+        <header className="mb-4 px-1 sm:px-2">
+          {/* Top row: Title + Dark Mode + Logout */}
+          <div className="flex justify-between items-center mb-3">
+            <div>
+              <p className="text-orange-500 font-black uppercase tracking-widest text-xs sm:text-sm">{ day === realToday ? "Today's Routine" : `${day}'s Routine`}</p>
+              <h1 className={`text-2xl sm:text-4xl font-black ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{day}</h1>
             </div>
-            <div className={`p-3 rounded-2xl border-2 flex items-center gap-1.5 transition-colors duration-300 ${
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <DarkModeToggle isDarkMode={isDarkMode} onToggle={() => setIsDarkMode(prev => !prev)} />
+              <motion.button id="logout-btn" whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }} onClick={handleLogout}
+                className="flex items-center justify-center w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl border-2 font-black cursor-pointer transition-colors duration-300"
+                style={{ backgroundColor: isDarkMode ? '#1e293b' : '#ffffff', borderColor: isDarkMode ? '#475569' : '#e2e8f0',
+                  boxShadow: isDarkMode ? '0 4px 0 0 #0f172a' : '0 4px 0 0 #f1f5f9', color: isDarkMode ? '#f87171' : '#ef4444' }}
+                aria-label="Log out">
+                <LogOut size={18} />
+              </motion.button>
+            </div>
+          </div>
+
+          {/* Bottom row: Weather + Progress + Streak */}
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+            <WeatherWidget weather={weather} isDarkMode={isDarkMode} />
+            <div className={`p-2 sm:p-3 rounded-xl sm:rounded-2xl border-2 flex items-center transition-colors duration-300 ${
+              isDarkMode ? 'bg-slate-800 border-slate-700 shadow-[0_4px_0_0_#0f172a]' : 'bg-white border-slate-100 shadow-[0_4px_0_0_#f1f5f9]'}`}>
+              <Trophy className="text-yellow-400 mr-1.5 sm:mr-2" fill="currentColor" size={18} />
+              <span className={`font-black text-sm sm:text-base ${isDarkMode ? 'text-slate-100' : 'text-slate-700'}`}>{currentProgress}%</span>
+            </div>
+            <div className={`p-2 sm:p-3 rounded-xl sm:rounded-2xl border-2 flex items-center gap-1 sm:gap-1.5 transition-colors duration-300 ${
               isDarkMode ? 'bg-orange-950/60 border-orange-800 shadow-[0_4px_0_0_#431407]' : 'bg-orange-50 border-orange-200 shadow-[0_4px_0_0_#fed7aa]'}`}>
               <motion.div animate={{ scale: [1, 1.15, 1] }} transition={{ repeat: Infinity, duration: 1.4, ease: 'easeInOut' }}>
-                <Flame size={22} className={isDarkMode ? 'text-orange-400' : 'text-orange-500'} fill="currentColor" strokeWidth={1.5} />
+                <Flame size={18} className={isDarkMode ? 'text-orange-400' : 'text-orange-500'} fill="currentColor" strokeWidth={1.5} />
               </motion.div>
-              <span className={`font-black text-lg leading-none ${isDarkMode ? 'text-orange-300' : 'text-orange-600'}`}>{streak}</span>
+              <span className={`font-black text-sm sm:text-lg leading-none ${isDarkMode ? 'text-orange-300' : 'text-orange-600'}`}>{streak}</span>
             </div>
-            <DarkModeToggle isDarkMode={isDarkMode} onToggle={() => setIsDarkMode(prev => !prev)} />
-            {/* Log Out Button */}
-            <motion.button id="logout-btn" whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }} onClick={handleLogout}
-              className="flex items-center justify-center w-14 h-14 rounded-2xl border-2 font-black cursor-pointer transition-colors duration-300"
-              style={{ backgroundColor: isDarkMode ? '#1e293b' : '#ffffff', borderColor: isDarkMode ? '#475569' : '#e2e8f0',
-                boxShadow: isDarkMode ? '0 4px 0 0 #0f172a' : '0 4px 0 0 #f1f5f9', color: isDarkMode ? '#f87171' : '#ef4444' }}
-              aria-label="Log out">
-              <LogOut size={22} />
+          </div>
+
+          {/* View Toggle: Daily Tracker ↔ Progress History */}
+          <div className={`flex mt-4 rounded-xl sm:rounded-2xl border-2 overflow-hidden transition-colors duration-300 ${
+            isDarkMode ? 'bg-slate-800/60 border-slate-700' : 'bg-slate-50 border-slate-200'
+          }`}>
+            <motion.button
+              id="view-tracker-btn"
+              whileTap={{ scale: 0.97 }}
+              onClick={() => setActiveView('tracker')}
+              className={`flex-1 flex items-center justify-center gap-1.5 sm:gap-2 py-2.5 sm:py-3 font-black text-xs sm:text-sm cursor-pointer transition-all duration-200 ${
+                activeView === 'tracker'
+                  ? 'bg-lime-500 text-white shadow-[0_3px_0_0_#65a30d]'
+                  : isDarkMode ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              <ClipboardList size={16} />
+              Daily Tracker
+            </motion.button>
+            <motion.button
+              id="view-progress-btn"
+              whileTap={{ scale: 0.97 }}
+              onClick={() => setActiveView('progress')}
+              className={`flex-1 flex items-center justify-center gap-1.5 sm:gap-2 py-2.5 sm:py-3 font-black text-xs sm:text-sm cursor-pointer transition-all duration-200 ${
+                activeView === 'progress'
+                  ? 'bg-violet-500 text-white shadow-[0_3px_0_0_#6d28d9]'
+                  : isDarkMode ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              <BarChart3 size={16} />
+              Progress
             </motion.button>
           </div>
         </header>
 
-        <DaySelector selectedDay={day} realToday={realToday} onSelect={handleDayChange} isDarkMode={isDarkMode} />
-        <WaterGlass amount={water} onAdd={addWater} isDarkMode={isDarkMode} />
+        {activeView === 'tracker' ? (
+          <>
+            <DaySelector selectedDay={day} realToday={realToday} onSelect={handleDayChange} isDarkMode={isDarkMode} />
+            <WaterGlass amount={water} onAdd={addWater} isDarkMode={isDarkMode} />
 
-        {todayData.Morning && (
-          <RoutineGroup title="Morning" icon={Sun} color="bg-orange-400" tasks={todayData.Morning} completedTasks={completed}
-            onToggle={handleToggle} onBibleReading={() => setIsBibleModalOpen(true)} isDarkMode={isDarkMode} />
-        )}
-        {todayData["Daily Briefing"] && (
-          <RoutineGroup title="Daily Briefing" icon={Briefcase} color="bg-sky-500" tasks={todayData["Daily Briefing"]} completedTasks={completed}
-            onToggle={handleToggle} onBirthdayList={() => setIsBirthdayModalOpen(true)} isDarkMode={isDarkMode} />
-        )}
-        {day === 'Saturday' && todayData["Weekly Review"] && (
-          <RoutineGroup title="Weekly Review" icon={Calendar} color="bg-purple-500" tasks={todayData["Weekly Review"]} completedTasks={completed}
-            onToggle={handleToggle} isDarkMode={isDarkMode} />
-        )}
-        {todayData["Evening Prep"] && (
-          <RoutineGroup title="Evening Prep" icon={Moon} color="bg-indigo-600" tasks={todayData["Evening Prep"]} completedTasks={completed}
-            onToggle={handleToggle} isDarkMode={isDarkMode} />
-        )}
+            {todayData.Morning && (
+              <RoutineGroup title="Morning" icon={Sun} color="bg-orange-400" tasks={todayData.Morning} completedTasks={completed}
+                onToggle={handleToggle} onBibleReading={() => setIsBibleModalOpen(true)} isDarkMode={isDarkMode} />
+            )}
+            {todayData["Daily Briefing"] && (
+              <RoutineGroup title="Daily Briefing" icon={Briefcase} color="bg-sky-500" tasks={todayData["Daily Briefing"]} completedTasks={completed}
+                onToggle={handleToggle} onBirthdayList={() => setIsBirthdayModalOpen(true)} isDarkMode={isDarkMode} />
+            )}
+            {day === 'Saturday' && todayData["Weekly Review"] && (
+              <RoutineGroup title="Weekly Review" icon={Calendar} color="bg-purple-500" tasks={todayData["Weekly Review"]} completedTasks={completed}
+                onToggle={handleToggle} isDarkMode={isDarkMode} />
+            )}
+            {todayData["Evening Prep"] && (
+              <RoutineGroup title="Evening Prep" icon={Moon} color="bg-indigo-600" tasks={todayData["Evening Prep"]} completedTasks={completed}
+                onToggle={handleToggle} isDarkMode={isDarkMode} />
+            )}
 
-        {/* Communication Tracker + Birthday List trigger buttons */}
-        <div className="flex gap-3 mb-10">
-          <motion.button id="birthday-list-btn" whileTap={{ scale: 0.95 }} whileHover={{ scale: 1.03 }}
-            onClick={() => setIsBirthdayModalOpen(true)}
-            className={`flex-1 flex items-center justify-center gap-2 py-5 rounded-2xl font-black text-lg cursor-pointer border-2 transition-colors duration-300 ${
-              isDarkMode
-                ? 'bg-pink-950/50 border-pink-800 text-pink-300 shadow-[0_6px_0_0_#831843]'
-                : 'bg-gradient-to-br from-pink-50 to-fuchsia-50 border-pink-200 text-pink-600 shadow-[0_6px_0_0_#fbcfe8]'
-            }`}>
-            🎂 Birthdays
-          </motion.button>
-          <motion.button id="comms-tracker-btn" whileTap={{ scale: 0.95 }} whileHover={{ scale: 1.03 }}
-            onClick={() => setShowContacts(true)}
-            className={`flex-1 flex items-center justify-center gap-2 py-5 rounded-2xl font-black text-lg cursor-pointer border-2 transition-colors duration-300 ${
-              isDarkMode
-                ? 'bg-violet-950/50 border-violet-800 text-violet-300 shadow-[0_6px_0_0_#4c1d95]'
-                : 'bg-gradient-to-br from-violet-50 to-fuchsia-50 border-violet-200 text-violet-600 shadow-[0_6px_0_0_#ddd6fe]'
-            }`}>
-            📞 Comms Tracker
-          </motion.button>
-        </div>
+            {/* Communication Tracker + Birthday List trigger buttons */}
+            <div className="flex gap-2 sm:gap-3 mb-8 sm:mb-10">
+              <motion.button id="birthday-list-btn" whileTap={{ scale: 0.95 }} whileHover={{ scale: 1.03 }}
+                onClick={() => setIsBirthdayModalOpen(true)}
+                className={`flex-1 flex items-center justify-center gap-1.5 sm:gap-2 py-3.5 sm:py-5 rounded-xl sm:rounded-2xl font-black text-sm sm:text-lg cursor-pointer border-2 transition-colors duration-300 ${
+                  isDarkMode
+                    ? 'bg-pink-950/50 border-pink-800 text-pink-300 shadow-[0_4px_0_0_#831843] sm:shadow-[0_6px_0_0_#831843]'
+                    : 'bg-gradient-to-br from-pink-50 to-fuchsia-50 border-pink-200 text-pink-600 shadow-[0_4px_0_0_#fbcfe8] sm:shadow-[0_6px_0_0_#fbcfe8]'
+                }`}>
+                🎂 Birthdays
+              </motion.button>
+              <motion.button id="comms-tracker-btn" whileTap={{ scale: 0.95 }} whileHover={{ scale: 1.03 }}
+                onClick={() => setShowContacts(true)}
+                className={`flex-1 flex items-center justify-center gap-1.5 sm:gap-2 py-3.5 sm:py-5 rounded-xl sm:rounded-2xl font-black text-sm sm:text-lg cursor-pointer border-2 transition-colors duration-300 ${
+                  isDarkMode
+                    ? 'bg-violet-950/50 border-violet-800 text-violet-300 shadow-[0_4px_0_0_#4c1d95] sm:shadow-[0_6px_0_0_#4c1d95]'
+                    : 'bg-gradient-to-br from-violet-50 to-fuchsia-50 border-violet-200 text-violet-600 shadow-[0_4px_0_0_#ddd6fe] sm:shadow-[0_6px_0_0_#ddd6fe]'
+                }`}>
+                📞 Comms
+              </motion.button>
+            </div>
+          </>
+        ) : (
+          <ProgressHistory session={session} isDarkMode={isDarkMode} />
+        )}
 
 
         <div className="h-10" />
