@@ -94,8 +94,8 @@ const DaySelector = ({ selectedDay, realToday, onSelect, isDarkMode }) => (
               : isDarkMode ? 'bg-slate-800 text-slate-400 border-slate-700 shadow-[0_4px_0_0_#0f172a] hover:text-slate-200 hover:border-slate-600'
               : 'bg-white text-slate-400 border-slate-100 shadow-[0_4px_0_0_#f1f5f9] hover:text-slate-600 hover:border-slate-200'}`}>
           {DAY_LABELS[i]}
-          {isToday && (<span className={`absolute -top-1 -right-1 w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full ${isSelected ? 'bg-lime-400' : 'bg-red-500'}`}>
-            <span className={`absolute inset-0 rounded-full animate-ping ${isSelected ? 'bg-lime-400' : 'bg-red-500'} opacity-75`} /></span>)}
+          {isToday && (<span className={`absolute -top-1 -right-1 w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full ${isSelected ? 'bg-orange-400' : 'bg-red-500'}`}>
+            <span className={`absolute inset-0 rounded-full animate-ping ${isSelected ? 'bg-orange-400' : 'bg-red-500'} opacity-75`} /></span>)}
         </motion.button>
       );
     })}
@@ -488,6 +488,7 @@ export default function RoutineTracker({ session }) {
   const [liveRoutines, setLiveRoutines] = useState([]);
   const [todayLogs, setTodayLogs] = useState({}); // { routine_id: logRow }
   const [activeView, setActiveView] = useState('tracker'); // 'tracker' | 'progress'
+  const [isMigrating, setIsMigrating] = useState(false);
 
 
   const [streak, setStreak] = useState(() => { try { const s = localStorage.getItem('routine-streak'); return s ? Number(s) : 0; } catch { return 0; } });
@@ -530,30 +531,96 @@ export default function RoutineTracker({ session }) {
     if (data) setMonthlyContacts(data);
   };
 
-  const getTodayStr = () => new Date().toISOString().split('T')[0];
+  // Returns today's date as a local YYYY-MM-DD string (avoids UTC timezone shifts)
+  const getTodayStr = () => {
+    const d = new Date();
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  // Build a flat deduplicated list of all task names from RAW_DATA
+  const getAllTaskNames = () => {
+    const seen = new Set();
+    const rows = [];
+    Object.values(RAW_DATA).forEach(dayData => {
+      Object.values(dayData).forEach(tasks => {
+        tasks.forEach(task => {
+          const key = task.trim();
+          if (!seen.has(key)) {
+            seen.add(key);
+            rows.push({ user_id: session.user.id, task_name: task.trim() });
+          }
+        });
+      });
+    });
+    return rows;
+  };
+
+  const seedDailyRoutines = async () => {
+    setIsMigrating(true);
+    console.log('[RoutineTracker] Seeding daily_routines…');
+
+    // Ensure a profile row exists first (required by FK on daily_routines.user_id)
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .upsert({ id: session.user.id, email: session.user.email }, { onConflict: 'id' });
+    if (profileError) {
+      console.warn('[RoutineTracker] Profile upsert warning (may be safe to ignore):', profileError.message);
+    }
+
+    const rows = getAllTaskNames();
+    const { data, error } = await supabase
+      .from('daily_routines')
+      .insert(rows)
+      .select();
+    if (error) {
+      console.error('[RoutineTracker] Error seeding daily_routines:', error);
+      setIsMigrating(false);
+      return;
+    }
+    console.log('[RoutineTracker] Seeded', data?.length, 'routines.');
+    setLiveRoutines(data ?? []);
+    await fetchTodayLogs(data ?? []);
+    setIsMigrating(false);
+  };
 
   const fetchDailyRoutines = async () => {
+    console.log('[RoutineTracker] Fetching daily_routines for user_id:', session.user.id);
     const { data, error } = await supabase
       .from('daily_routines')
       .select('*')
       .eq('user_id', session.user.id);
-    if (error) { console.error('Error fetching daily routines:', error); return; }
-    if (data) {
+    if (error) {
+      console.error('[RoutineTracker] Error fetching daily routines:', error);
+      return;
+    }
+    console.log('[RoutineTracker] daily_routines returned', data?.length ?? 0, 'rows.');
+    if (data && data.length > 0) {
       setLiveRoutines(data);
-      // Now fetch today's logs to determine checked state
       await fetchTodayLogs(data);
+    } else {
+      // Table is empty for this user — auto-seed from RAW_DATA
+      console.log('[RoutineTracker] No routines found — auto-seeding from RAW_DATA…');
+      await seedDailyRoutines();
     }
   };
 
   const fetchTodayLogs = async (routines = liveRoutines) => {
     const todayStr = getTodayStr();
+    console.log('[RoutineTracker] Fetching logs for date:', todayStr);
     const { data: logs, error } = await supabase
       .from('routine_logs')
       .select('*')
       .eq('user_id', session.user.id)
       .eq('completed_date', todayStr);
-    if (error) { console.error('Error fetching routine logs:', error); return; }
+    if (error) {
+      console.error('[RoutineTracker] Error fetching routine logs:', error);
+      return;
+    }
     if (logs) {
+      console.log('[RoutineTracker] Loaded', logs.length, 'log(s) for today.');
       // Build a lookup: routine_id → log row
       const logsMap = {};
       logs.forEach(log => { logsMap[log.routine_id] = log; });
@@ -651,10 +718,15 @@ export default function RoutineTracker({ session }) {
 
   useEffect(() => {
     if (currentProgress < 100) return;
-    const today = new Date(); const todayStr = today.toISOString().split('T')[0];
+    const todayStr = getTodayStr();
     if (lastCompletedDate === todayStr) return;
-    const yesterday = new Date(today); yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toISOString().split('T')[0];
+    // Compute yesterday in local time to correctly detect consecutive streaks
+    const now = new Date();
+    const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+    const yy = yesterday.getFullYear();
+    const ym = String(yesterday.getMonth() + 1).padStart(2, '0');
+    const yd = String(yesterday.getDate()).padStart(2, '0');
+    const yesterdayStr = `${yy}-${ym}-${yd}`;
     const newStreak = lastCompletedDate === yesterdayStr ? streak + 1 : 1;
     setStreak(newStreak); setLastCompletedDate(todayStr);
     confetti({ particleCount: 120, spread: 80, origin: { y: 0.5 }, colors: ['#f97316', '#ef4444', '#eab308', '#dc2626', '#f59e0b', '#fbbf24'] });
@@ -662,41 +734,84 @@ export default function RoutineTracker({ session }) {
 
   const handleToggle = async (task) => {
     const isCompleting = !completed.includes(task);
-    const routine = liveRoutines.find(r => r.task_name === task.trim());
-    if (!routine) return;
+    // Try exact match first, then trimmed match (RAW_DATA has some trailing spaces like "Stretch ")
+    const routine = liveRoutines.find(r => r.task_name === task) ||
+                    liveRoutines.find(r => r.task_name.trim() === task.trim());
+    if (!routine) {
+      console.warn('[RoutineTracker] No routine found in liveRoutines for task:', JSON.stringify(task));
+      console.warn('[RoutineTracker] Available task_names:', liveRoutines.map(r => JSON.stringify(r.task_name)));
+      // liveRoutines is empty — likely DB not seeded for this user. Bail gracefully.
+      return;
+    }
 
     const todayStr = getTodayStr();
 
-    // Optimistic UI update
+    // Optimistic UI update — happens immediately, before the async request
     setCompleted(prev => isCompleting ? [...prev, task] : prev.filter(t => t !== task));
 
     if (isCompleting) {
+      // Check for an existing log first to avoid duplicate-key errors
+      const { data: existing, error: checkError } = await supabase
+        .from('routine_logs')
+        .select('id')
+        .eq('user_id', session.user.id)
+        .eq('routine_id', routine.id)
+        .eq('completed_date', todayStr)
+        .maybeSingle();
+
+      if (checkError) {
+        console.error('[RoutineTracker] Error checking for existing log:', checkError);
+        // Revert optimistic update
+        setCompleted(prev => prev.filter(t => t !== task));
+        return;
+      }
+
+      if (existing) {
+        // Log already exists — just update local state to reflect it
+        console.log('[RoutineTracker] Log already exists for routine:', routine.id, '— skipping insert.');
+        setTodayLogs(prev => ({ ...prev, [routine.id]: existing }));
+        return;
+      }
+
       // INSERT a new log row
       const newLog = { user_id: session.user.id, routine_id: routine.id, completed_date: todayStr };
       setTodayLogs(prev => ({ ...prev, [routine.id]: newLog }));
 
-      const { data, error } = await supabase.from('routine_logs').insert(newLog).select().single();
+      const { data, error } = await supabase
+        .from('routine_logs')
+        .insert(newLog)
+        .select()
+        .single();
+
       if (error) {
-        console.error('Error inserting routine log:', error);
+        console.error('[RoutineTracker] Error inserting routine log:', error);
+        // Revert optimistic update
         setCompleted(prev => prev.filter(t => t !== task));
         setTodayLogs(prev => { const next = { ...prev }; delete next[routine.id]; return next; });
       } else {
         // Store the real row (with server-generated id) in our local cache
         setTodayLogs(prev => ({ ...prev, [routine.id]: data }));
+        console.log('[RoutineTracker] Log inserted for routine:', routine.id, 'date:', todayStr);
       }
     } else {
       // DELETE the existing log row
       const existingLog = todayLogs[routine.id];
       setTodayLogs(prev => { const next = { ...prev }; delete next[routine.id]; return next; });
 
-      const { error } = await supabase.from('routine_logs').delete()
+      const { error } = await supabase
+        .from('routine_logs')
+        .delete()
         .eq('user_id', session.user.id)
         .eq('routine_id', routine.id)
         .eq('completed_date', todayStr);
+
       if (error) {
-        console.error('Error deleting routine log:', error);
+        console.error('[RoutineTracker] Error deleting routine log:', error);
+        // Revert optimistic update
         setCompleted(prev => [...prev, task]);
         if (existingLog) setTodayLogs(prev => ({ ...prev, [routine.id]: existingLog }));
+      } else {
+        console.log('[RoutineTracker] Log deleted for routine:', routine.id, 'date:', todayStr);
       }
     }
   };
@@ -730,6 +845,23 @@ export default function RoutineTracker({ session }) {
   const bgGradient = isDarkMode ? 'linear-gradient(to bottom right, #0f172a, #1e1b4b, #0f172a)' : 'linear-gradient(to bottom right, #e0f2fe, #eef2ff, #fff7ed)';
   const dotColor = isDarkMode ? '%23334155' : '%23e8e4dd';
   const dotOpacity = isDarkMode ? 0.3 : 0.4;
+
+  // Show a loading screen while auto-seeding on first launch
+  if (isMigrating) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center font-sans" style={{ background: bgGradient }}>
+        <div className="text-center">
+          <div className="w-16 h-16 rounded-2xl bg-lime-500 flex items-center justify-center mx-auto mb-4 shadow-[0_6px_0_0_#65a30d]">
+            <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}>
+              <Sun size={32} className="text-white" />
+            </motion.div>
+          </div>
+          <p className={`font-black text-xl mb-2 ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>Setting up your routines…</p>
+          <p className={`font-bold text-sm ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>One-time setup, just a moment!</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen pb-20 pt-10 font-sans relative transition-colors duration-500" style={{ background: bgGradient }}>
