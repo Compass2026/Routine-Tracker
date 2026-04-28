@@ -11,32 +11,32 @@ import {
 
 const RAW_DATA = {
   Monday: {
-    Morning: ["Stretch", "Workout", "Bible Reading", "Prayer", "Creed", "Morning/Evening "],
+    Morning: ["Stretch", "Workout", "Bible Reading", "Prayer", "Creed", "Morning/Evening"],
     "Daily Briefing": ["Clean and Organize", "Albert Mohler", "Calendar Review", "Email to Zero", "Birthday List", "Communication List", "Review Projects List", "Daily Focus"],
     "Evening Prep": ["Review Projects List", "Tomorrow's Focus", "Email to Zero", "Organize Inbox", "Tidy Workspace"]
   },
   Tuesday: {
-    Morning: ["Stretch ", "Workout", "Bible Reading", "Prayer", "Creed", "Morning/Evening "],
+    Morning: ["Stretch", "Workout", "Bible Reading", "Prayer", "Creed", "Morning/Evening"],
     "Daily Briefing": ["Clean and Organize", "Albert Mohler", "Calendar Review", "Email to Zero", "Birthday List", "Communication List", "Review Projects List", "Daily Focus"],
     "Evening Prep": ["Review Projects List", "Schedule Tomorrow's Focus", "Email to Zero", "Organize Inbox", "Tidy Workspace"]
   },
   Wednesday: {
-    Morning: ["Stretch", "Workout", "Bible Reading", "Prayer", "Creed", "Morning/Evening "],
+    Morning: ["Stretch", "Workout", "Bible Reading", "Prayer", "Creed", "Morning/Evening"],
     "Daily Briefing": ["Clean and Organize", "Albert Mohler", "Calendar Review", "Email to Zero", "Birthday List", "Communication List", "Review Projects List", "Daily Focus"],
     "Evening Prep": ["Review Projects List", "Schedule Tomorrow's Focus", "Email to Zero", "Organize Inbox", "Tidy Workspace"]
   },
   Thursday: {
-    Morning: ["Stretch", "Workout", "Bible Reading", "Prayer", "Creed", "Morning/Evening "],
+    Morning: ["Stretch", "Workout", "Bible Reading", "Prayer", "Creed", "Morning/Evening"],
     "Daily Briefing": ["Clean and Organize", "Albert Mohler", "Calendar Review", "Email to Zero", "Birthday List", "Communication List", "Review Projects List", "Daily Focus"],
     "Evening Prep": ["Review Projects List", "Schedule Tomorrow's Focus", "Email to Zero", "Organize Inbox", "Tidy Workspace"]
   },
   Friday: {
-    Morning: ["Stretch", "Workout", "Bible Reading", "Prayer", "Creed", "Morning/Evening "],
+    Morning: ["Stretch", "Workout", "Bible Reading", "Prayer", "Creed", "Morning/Evening"],
     "Daily Briefing": ["Clean and Organize", "Albert Mohler", "Calendar Review", "Email to Zero", "Birthday List", "Communication List", "Review Projects List", "Daily Focus"],
     "Evening Prep": ["Review Projects List", "Schedule Tomorrow's Focus", "Email to Zero", "Organize Inbox", "Tidy Workspace"]
   },
   Saturday: {
-    Morning: ["Stretch ", "Workout", "Bible Reading", "Prayer", "Creed", "Morning/Evening "],
+    Morning: ["Stretch", "Workout", "Bible Reading", "Prayer", "Creed", "Morning/Evening"],
     "Daily Briefing": ["Clean and Organize", "Albert Mohler", "Calendar Review", "Email to Zero", "Review Inbox", "Birthday List", "Communication List", "Review Projects List", "Daily Focus"],
     "Evening Prep": ["Review Projects List", "Schedule Tomorrow's Focus", "Email to Zero", "Organize Inbox", "Tidy Workspace"],
     "Weekly Review": ["Morning Routine", "Daily Briefing", "Review Journal", "Update Projects List", "Update Next Actions List", "Review and Update Calendar", "Update Communications List", "Time Block Daily Focus", "Process Tickler File", "Evening Prep"]
